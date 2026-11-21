@@ -58,7 +58,7 @@ TOP_LIP_THICK = 2.4           # Thickness of downward lip
 RIB_DEPTH = 4.5               # Protrusion in +Y behind backplate (total spine depth = 8.5 mm)
 RIB_WIDTH = 4.0               # Width of each rib
 SPINE_RIB_OFFSET_X = 13.0     # X center of left/right longitudinal spine ribs
-GARMIN_CLEARANCE_DIA = 42.0   # Free rotation zone for female Garmin mount
+GARMIN_CLEARANCE_DIA = 48.0   # Free rotation zone for Garmin Out-Front mount housing
 
 # T-junction gusset / flare
 T_FLARE_WIDTH = 62.0          # Widened base of spine at Z = ARM_HEIGHT
