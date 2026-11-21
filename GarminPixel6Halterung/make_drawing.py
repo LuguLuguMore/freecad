@@ -255,7 +255,7 @@ ax.text(265, 16, "lugulugumore.github.io", fontsize=6.5, ha='center', va='center
 hiro_box = patches.Rectangle((74, 10), 38, 36, fill=False, lw=0.9, ec='black')
 ax.add_patch(hiro_box)
 hiro_img = np.array(Image.open(r"{HIRO_PNG_PATH}").convert("RGB"))
-ab_hiro = AnnotationBbox(OffsetImage(hiro_img, zoom=0.052), (93, 30), frameon=False)
+ab_hiro = AnnotationBbox(OffsetImage(hiro_img, zoom=0.038), (93, 30), frameon=False)
 ax.add_artist(ab_hiro)
 ax.text(93, 12.5, "AR-Marker (HIRO)", ha='center', va='center', fontsize=7, fontweight='bold')
 
