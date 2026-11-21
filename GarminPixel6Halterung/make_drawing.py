@@ -16,6 +16,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 FCSTD_PATH = os.path.join(SCRIPT_DIR, "Garmin_Pixel6_Halterung_Optimiert.FCStd")
 STEP_PATH = os.path.join(SCRIPT_DIR, "Garmin_Pixel6_Halterung_Optimiert.step")
 QR_PNG_PATH = os.path.join(SCRIPT_DIR, "qr_ar_fem.png")
+HIRO_PNG_PATH = os.path.join(SCRIPT_DIR, "hiro_marker.png")
 PDF_OUT_PATH = os.path.join(SCRIPT_DIR, "Zeichnung_Garmin_Pixel6_Optimiert.pdf")
 AR_URL = "https://lugulugumore.github.io/freecad/"
 
@@ -250,7 +251,15 @@ ax.text(265, 40, "AR FEM-Ansicht", fontsize=8, fontweight='bold', ha='center', v
 ax.text(265, 28, "QR-Code scannen:", fontsize=7, ha='center', va='center')
 ax.text(265, 16, "lugulugumore.github.io", fontsize=6.5, ha='center', va='center')
 
-# Embed QR code inside dedicated box
+# Embed AR-Marker (HIRO) box at X=74..112, Y=10..46
+hiro_box = patches.Rectangle((74, 10), 38, 36, fill=False, lw=0.9, ec='black')
+ax.add_patch(hiro_box)
+hiro_img = np.array(Image.open(r"{HIRO_PNG_PATH}").convert("RGB"))
+ab_hiro = AnnotationBbox(OffsetImage(hiro_img, zoom=0.052), (93, 30), frameon=False)
+ax.add_artist(ab_hiro)
+ax.text(93, 12.5, "AR-Marker (HIRO)", ha='center', va='center', fontsize=7, fontweight='bold')
+
+# Embed QR code inside dedicated box at X=112..150, Y=10..46
 qr_box = patches.Rectangle((112, 10), 38, 36, fill=False, lw=0.9, ec='black')
 ax.add_patch(qr_box)
 qr_img = np.array(Image.open(r"{QR_PNG_PATH}").convert("RGB"))

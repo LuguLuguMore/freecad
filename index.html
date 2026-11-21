@@ -7,7 +7,7 @@
   <style>
     :root {
       --bg: #0f172a;
-      --panel: rgba(15, 23, 42, 0.82);
+      --panel: rgba(15, 23, 42, 0.84);
       --border: rgba(148, 163, 184, 0.25);
       --text: #f1f5f9;
       --muted: #94a3b8;
@@ -19,17 +19,13 @@
       background: var(--bg); color: var(--text);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
-    #cam-bg {
-      position: fixed; inset: 0; width: 100%; height: 100%;
-      object-fit: cover; z-index: 0; display: none;
-    }
     canvas {
       position: fixed; inset: 0; z-index: 1; display: block;
     }
     #hud {
-      position: fixed; top: 12px; left: 12px; right: 12px;
-      z-index: 10; pointer-events: none;
-      display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: flex-start;
+      position: fixed; top: 10px; left: 10px; right: 10px;
+      z-index: 20; pointer-events: none;
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-start;
     }
     .card {
       pointer-events: auto;
@@ -38,68 +34,56 @@
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 12px 14px;
-      max-width: 340px;
-      font-size: 13px;
-      line-height: 1.4;
+      padding: 10px 12px;
+      max-width: 330px;
+      font-size: 12px;
+      line-height: 1.35;
     }
-    .card h1 { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: #fff; }
-    .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .card h1 { font-size: 14px; font-weight: 700; margin-bottom: 3px; color: #fff; }
+    .meta { color: var(--muted); font-size: 11px; margin-bottom: 6px; }
     .stats {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
-      margin-top: 6px; text-align: center;
+      margin-top: 4px; text-align: center;
     }
-    .stat {
-      background: rgba(30, 41, 59, 0.7); border-radius: 8px; padding: 6px 4px;
-    }
-    .stat strong { display: block; font-size: 14px; color: var(--accent); }
+    .stat { background: rgba(30, 41, 59, 0.75); border-radius: 8px; padding: 5px 4px; }
+    .stat strong { display: block; font-size: 13px; color: var(--accent); }
     .stat span { font-size: 10px; color: var(--muted); }
-    .controls { display: flex; flex-direction: column; gap: 8px; }
+    .controls { display: flex; flex-direction: column; gap: 7px; }
     .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
     button {
       cursor: pointer; border: 1px solid var(--border);
       background: rgba(30, 41, 59, 0.85); color: var(--text);
-      padding: 7px 11px; border-radius: 8px; font-size: 12px; font-weight: 600;
-      transition: background 0.15s, border-color 0.15s;
+      padding: 7px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
     }
-    button.active {
-      background: var(--accent); color: #0f172a; border-color: var(--accent);
-    }
+    button.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
     button.ar-btn {
       background: linear-gradient(135deg, #0ea5e9, #6366f1);
-      border-color: transparent; color: #fff;
+      border-color: transparent; color: #fff; width: 100%;
     }
-    label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+    label { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
     input[type="range"] { width: 100%; accent-color: var(--accent); }
     #legend {
-      position: fixed; bottom: 16px; left: 12px; z-index: 10;
+      position: fixed; bottom: 14px; left: 10px; z-index: 20;
       background: var(--panel); backdrop-filter: blur(10px);
       border: 1px solid var(--border); border-radius: 10px;
-      padding: 8px 12px; width: 240px; font-size: 11px;
+      padding: 8px 12px; width: 220px; font-size: 11px;
     }
-    .colorbar {
-      height: 12px; border-radius: 6px; margin: 5px 0 3px;
-    }
+    .colorbar { height: 10px; border-radius: 5px; margin: 5px 0 3px; }
     .colorbar-labels { display: flex; justify-content: space-between; color: var(--muted); }
-    #ar-hint {
-      position: fixed; bottom: 16px; right: 12px; z-index: 10;
+    #ar-status {
+      position: fixed; bottom: 14px; right: 10px; z-index: 20;
       background: var(--panel); border: 1px solid var(--border);
-      border-radius: 10px; padding: 8px 12px; font-size: 11px; color: var(--muted);
+      border-radius: 10px; padding: 8px 12px; font-size: 11px;
       max-width: 240px; display: none;
     }
+    #ar-status.found { border-color: #22c55e; color: #86efac; }
   </style>
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
-      }
-    }
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-threex.js"></script>
+  <script src="./GarminPixel6Halterung/fem_ar_data.js"></script>
 </head>
 <body>
-  <video id="cam-bg" autoplay playsinline muted></video>
-
   <div id="hud">
     <div class="card">
       <h1>Garmin Pixel 6 Halterung – FEM</h1>
@@ -118,12 +102,10 @@
         <button id="btn-wire">Netz</button>
       </div>
       <div>
-        <label><span>Verformungs-Skala</span><span id="scale-val">3.0×</span></label>
-        <input id="scale-slider" type="range" min="0" max="15" step="0.5" value="3" />
+        <label><span>Verformungs-Skala</span><span id="scale-val">5.0×</span></label>
+        <input id="scale-slider" type="range" min="0" max="15" step="0.5" value="5" />
       </div>
-      <div class="btn-row" id="ar-actions">
-        <button id="btn-cam-ar" class="ar-btn">Kamera-AR starten</button>
-      </div>
+      <button id="btn-ar" class="ar-btn">AR über Zeichnung starten (HIRO-Marker)</button>
     </div>
   </div>
 
@@ -132,20 +114,14 @@
     <div id="colorbar" class="colorbar"></div>
     <div class="colorbar-labels">
       <span id="leg-min">0</span>
-      <span id="leg-mid">18.4</span>
-      <span id="leg-max">36.7</span>
+      <span id="leg-mid">–</span>
+      <span id="leg-max">–</span>
     </div>
   </div>
 
-  <div id="ar-hint"></div>
+  <div id="ar-status"></div>
 
-  <script src="./GarminPixel6Halterung/fem_ar_data.js"></script>
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { ARButton } from 'three/addons/webxr/ARButton.js';
-
-    // Turbo colormap approximation (0..1 -> [r,g,b])
+  <script>
     function turboColor(t) {
       t = Math.max(0, Math.min(1, t));
       const r = Math.max(0, Math.min(1, 0.1357 + t * (4.615 + t * (-42.66 + t * (132.13 + t * (-152.94 + t * 59.28))))));
@@ -154,7 +130,6 @@
       return [r, g, b];
     }
 
-    // Viridis colormap approximation
     function viridisColor(t) {
       t = Math.max(0, Math.min(1, t));
       const r = Math.max(0, Math.min(1, 0.267 + t * (-0.329 + t * (2.374 + t * (-1.345)))));
@@ -164,26 +139,24 @@
     }
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.005, 20);
+    let camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.005, 50);
     camera.position.set(0.14, 0.12, 0.18);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.target.set(0, 0.045, 0);
     controls.update();
 
-    // Lighting
-    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
     dirLight.position.set(0.5, 1.0, 0.7);
     scene.add(dirLight);
-    const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.4);
+    const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.45);
     dirLight2.position.set(-0.5, -0.3, -0.6);
     scene.add(dirLight2);
 
@@ -196,8 +169,15 @@
     let femData = null;
     let geometry = null;
     let wireMesh = null;
-    let mode = 'vm'; // 'vm' or 'disp'
-    let dispScale = 3.0;
+    let mode = 'vm';
+    let dispScale = 5.0;
+
+    // AR.js state
+    let arActive = false;
+    let arToolkitSource = null;
+    let arToolkitContext = null;
+    let markerRoot = null;
+    let arCamera = null;
 
     function updateColors() {
       if (!femData || !geometry) return;
@@ -235,7 +215,6 @@
       const pos = geometry.attributes.position.array;
       const base = femData.positions;
       const disp = femData.displacements;
-      // Convert mm -> meters (0.001)
       for (let i = 0; i < pos.length; i++) {
         pos[i] = (base[i] + dispScale * disp[i]) * 0.001;
       }
@@ -273,8 +252,7 @@
         metalness: 0.05,
         side: THREE.DoubleSide,
       });
-      const mesh = new THREE.Mesh(geometry, mat);
-      mountGroup.add(mesh);
+      mountGroup.add(new THREE.Mesh(geometry, mat));
 
       wireMesh = new THREE.Mesh(
         geometry,
@@ -282,34 +260,90 @@
       );
       wireMesh.visible = false;
       mountGroup.add(wireMesh);
+    }
 
-      // WebXR ARButton if supported
-      if (navigator.xr && await navigator.xr.isSessionSupported('immersive-ar')) {
-        const arBtn = ARButton.createButton(renderer, {
-          optionalFeatures: ['dom-overlay', 'hit-test'],
-          domOverlay: { root: document.body },
-        });
-        arBtn.style.position = 'static';
-        arBtn.className = 'ar-btn';
-        arBtn.textContent = 'WebXR AR (1:1)';
-        document.getElementById('ar-actions').prepend(arBtn);
+    function startAR() {
+      arActive = true;
+      grid.visible = false;
+      controls.enabled = false;
+      document.body.style.background = 'transparent';
 
-        renderer.xr.addEventListener('sessionstart', () => {
-          grid.visible = false;
-          mountGroup.position.set(0, -0.05, -0.35);
-          mountGroup.scale.setScalar(1.0);
-          document.getElementById('ar-hint').style.display = 'block';
-          document.getElementById('ar-hint').textContent = 'WebXR aktiv: Halterung im Maßstab 1:1 (35 cm vor dir).';
-        });
-        renderer.xr.addEventListener('sessionend', () => {
-          grid.visible = true;
-          mountGroup.position.set(0, 0, 0);
-          document.getElementById('ar-hint').style.display = 'none';
-        });
+      arCamera = new THREE.Camera();
+      scene.add(arCamera);
+
+      arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+      arToolkitSource.init(() => {
+        onARResize();
+      }, (err) => {
+        alert('Kamera-Zugriff fehlgeschlagen (HTTPS nötig): ' + err);
+        stopAR();
+      });
+
+      arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat',
+        detectionMode: 'mono',
+      });
+      arToolkitContext.init(() => {
+        arCamera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+      });
+
+      markerRoot = new THREE.Group();
+      scene.add(markerRoot);
+      new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+        type: 'pattern',
+        patternUrl: './GarminPixel6Halterung/patt.hiro',
+      });
+
+      // Scale mount nicely so it hovers clearly above the 32 mm HIRO marker (1 unit = marker width)
+      scene.remove(mountGroup);
+      markerRoot.add(mountGroup);
+      mountGroup.scale.setScalar(18.0);
+      mountGroup.position.set(0, 0.25, 0);
+
+      const status = document.getElementById('ar-status');
+      status.style.display = 'block';
+      status.classList.remove('found');
+      status.textContent = 'Kamera auf den HIRO-Marker auf der Zeichnung richten...';
+      document.getElementById('btn-ar').textContent = 'AR beenden (zurück zu 3D)';
+    }
+
+    function stopAR() {
+      arActive = false;
+      if (arToolkitSource && arToolkitSource.domElement && arToolkitSource.domElement.srcObject) {
+        arToolkitSource.domElement.srcObject.getTracks().forEach(t => t.stop());
+      }
+      if (arToolkitSource && arToolkitSource.domElement && arToolkitSource.domElement.parentNode) {
+        arToolkitSource.domElement.parentNode.removeChild(arToolkitSource.domElement);
+      }
+      if (markerRoot) {
+        markerRoot.remove(mountGroup);
+        scene.remove(markerRoot);
+        markerRoot = null;
+      }
+      if (arCamera) {
+        scene.remove(arCamera);
+        arCamera = null;
+      }
+      scene.add(mountGroup);
+      mountGroup.scale.setScalar(1.0);
+      mountGroup.position.set(0, 0, 0);
+      grid.visible = true;
+      controls.enabled = true;
+      document.body.style.background = 'var(--bg)';
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.getElementById('ar-status').style.display = 'none';
+      document.getElementById('btn-ar').textContent = 'AR über Zeichnung starten (HIRO-Marker)';
+    }
+
+    function onARResize() {
+      if (!arToolkitSource || !arToolkitSource.ready) return;
+      arToolkitSource.onResizeElement();
+      arToolkitSource.copyElementSizeTo(renderer.domElement);
+      if (arToolkitContext && arToolkitContext.arController) {
+        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
       }
     }
 
-    // UI Listeners
     document.getElementById('btn-vm').onclick = (e) => {
       mode = 'vm';
       e.target.classList.add('active');
@@ -332,52 +366,45 @@
       document.getElementById('scale-val').textContent = `${dispScale.toFixed(1)}×`;
       updateDisplacement();
     };
-
-    // Camera Passthrough AR Fallback (works on iOS Safari & Android)
-    let camStream = null;
-    document.getElementById('btn-cam-ar').onclick = async (e) => {
-      const video = document.getElementById('cam-bg');
-      const hint = document.getElementById('ar-hint');
-      if (camStream) {
-        camStream.getTracks().forEach(t => t.stop());
-        camStream = null;
-        video.style.display = 'none';
-        grid.visible = true;
-        document.body.style.background = 'var(--bg)';
-        e.target.textContent = 'Kamera-AR starten';
-        hint.style.display = 'none';
-        return;
-      }
-      try {
-        camStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }, audio: false
-        });
-        video.srcObject = camStream;
-        video.style.display = 'block';
-        grid.visible = false;
-        document.body.style.background = 'transparent';
-        e.target.textContent = 'Kamera-AR beenden';
-        hint.style.display = 'block';
-        hint.textContent = 'Kamera-AR aktiv: Drehen & Zoomen mit den Fingern über der Zeichnung.';
-      } catch (err) {
-        alert('Kamera-Zugriff nicht möglich (HTTPS erforderlich): ' + err.message);
-      }
+    document.getElementById('btn-ar').onclick = () => {
+      if (arActive) stopAR(); else startAR();
     };
 
     window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (arActive) {
+        onARResize();
+      } else {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
     });
 
-    renderer.setAnimationLoop(() => {
-      if (!renderer.xr.isPresenting) {
+    function animate() {
+      requestAnimationFrame(animate);
+      if (arActive) {
+        if (arToolkitSource && arToolkitSource.ready && arToolkitContext) {
+          arToolkitContext.update(arToolkitSource.domElement);
+        }
+        if (markerRoot) {
+          const st = document.getElementById('ar-status');
+          if (markerRoot.visible) {
+            st.classList.add('found');
+            st.textContent = 'Marker erkannt – FEM schwebt über Zeichnung!';
+          } else {
+            st.classList.remove('found');
+            st.textContent = 'Kamera auf den HIRO-Marker auf der Zeichnung richten...';
+          }
+        }
+        renderer.render(scene, arCamera);
+      } else {
         controls.update();
+        renderer.render(scene, camera);
       }
-      renderer.render(scene, camera);
-    });
+    }
 
     init();
+    animate();
   </script>
 </body>
 </html>
