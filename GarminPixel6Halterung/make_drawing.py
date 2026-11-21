@@ -81,9 +81,18 @@ def add_techdraw_page(doc, part_obj):
     v_side.Direction = FreeCAD.Vector(1, 0, 0)
     v_side.XDirection = FreeCAD.Vector(0, 1, 0)
     v_side.Scale = 1.0
-    v_side.X = 245.0
+    v_side.X = 212.0
     v_side.Y = 120.0
     page.addView(v_side)
+
+    # Isometric View (Back-Right-Top)
+    v_iso = doc.addObject("TechDraw::DrawViewPart", "Isometrie")
+    v_iso.Source = [part_obj]
+    v_iso.Direction = FreeCAD.Vector(1, 1, 0.65)
+    v_iso.Scale = 0.75
+    v_iso.X = 258.0
+    v_iso.Y = 120.0
+    page.addView(v_iso)
 
     # QR Code Image on TechDraw sheet
     qr_view = doc.addObject("TechDraw::DrawViewImage", "QR_Code_AR")
@@ -156,10 +165,12 @@ def render_pdf_drawing():
     v_front = project_view_polylines(shape, FreeCAD.Vector(1, 0, 0), -90)
     # Side (+X toward camera, Z vertical): rotate -90 around Z, then -90 around X
     v_side = project_view_polylines(shape, FreeCAD.Vector(0, 0, 1), -90, FreeCAD.Vector(1, 0, 0), -90)
+    # Isometric (Back-Right-Top with Z upright): rotate -135 around Z, then -60 around X
+    v_iso = project_view_polylines(shape, FreeCAD.Vector(0, 0, 1), -135, FreeCAD.Vector(1, 0, 0), -60)
 
     views_json = os.path.join(SCRIPT_DIR, "fem_ccx_tmp", "views_poly.json")
     with open(views_json, "w") as f:
-        json.dump({"front": v_front, "back": v_back, "side": v_side}, f)
+        json.dump({"front": v_front, "back": v_back, "side": v_side, "iso": v_iso}, f)
 
     plot_script = os.path.join(SCRIPT_DIR, "fem_ccx_tmp", "_build_pdf.py")
     with open(plot_script, "w", encoding="utf-8") as f:
@@ -187,29 +198,31 @@ ax.axis('off')
 # Outer ISO border
 ax.add_patch(patches.Rectangle((10, 10), 277, 190, fill=False, lw=1.2, ec='black'))
 
-def draw_view(vdata, cx, cy, label, flip_y=False):
-    vis = [np.array(p) for p in vdata["vis"] if len(p) >= 2]
-    hid = [np.array(p) for p in vdata["hid"] if len(p) >= 2]
+def draw_view(vdata, cx, cy, label, flip_y=False, scale=1.0, show_hidden=True):
+    vis = [np.array(p) * scale for p in vdata["vis"] if len(p) >= 2]
+    hid = [np.array(p) * scale for p in vdata["hid"] if len(p) >= 2]
     if flip_y:
         vis = [np.column_stack([p[:,0], -p[:,1]]) for p in vis]
         hid = [np.column_stack([p[:,0], -p[:,1]]) for p in hid]
     all_pts = np.vstack(vis)
     mx = (all_pts[:,0].min() + all_pts[:,0].max()) / 2
     my = (all_pts[:,1].min() + all_pts[:,1].max()) / 2
-    for p in hid:
-        ax.plot(p[:,0] - mx + cx, p[:,1] - my + cy, color='#94a3b8', lw=0.4, ls='--')
+    if show_hidden:
+        for p in hid:
+            ax.plot(p[:,0] - mx + cx, p[:,1] - my + cy, color='#94a3b8', lw=0.4, ls='--')
     for p in vis:
         ax.plot(p[:,0] - mx + cx, p[:,1] - my + cy, color='black', lw=0.85)
-    ax.text(cx, cy + (all_pts[:,1].max() - all_pts[:,1].min()) / 2 + 12, label,
-            ha='center', va='bottom', fontsize=9, fontweight='bold')
+    ax.text(cx, cy + (all_pts[:,1].max() - all_pts[:,1].min()) / 2 + 10, label,
+            ha='center', va='bottom', fontsize=8.5, fontweight='bold')
     return (
         all_pts[:,0].min() - mx + cx, all_pts[:,0].max() - mx + cx,
         all_pts[:,1].min() - my + cy, all_pts[:,1].max() - my + cy,
     )
 
-b_front = draw_view(views['front'], 62, 118, "VORDERANSICHT (1:1)")
-b_back  = draw_view(views['back'], 162, 118, "RÜCKANSICHT – GARMIN & RIPPEN (1:1)", flip_y=True)
-b_side  = draw_view(views['side'], 245, 118, "SEITENANSICHT (1:1)")
+b_front = draw_view(views['front'], 58, 120, "VORDERANSICHT (1:1)")
+b_back  = draw_view(views['back'], 148, 120, "RÜCKANSICHT (1:1)", flip_y=True)
+b_side  = draw_view(views['side'], 210, 120, "SEITENANSICHT (1:1)")
+b_iso   = draw_view(views['iso'], 256, 120, "ISOMETRIE (M 3:4)", scale=0.72, show_hidden=False)
 
 def dim_h(x1, x2, y_line, y_ext1, text):
     ax.plot([x1, x1], [y_ext1, y_line + (2 if y_line > y_ext1 else -2)], 'k-', lw=0.4)
@@ -228,16 +241,16 @@ def dim_v(y1, y2, x_line, x_ext1, text):
 # Dimensions on Front View
 dim_h(b_front[0], b_front[1], b_front[2] - 10, b_front[2], "87,0 mm (Außen)")
 dim_h(b_front[0] + 3.5, b_front[1] - 3.5, b_front[2] - 19, b_front[2] + 5, "80,0 mm (Innen)")
-dim_v(b_front[2], b_front[3], b_front[0] - 8, b_front[0], "93,5 mm")
-dim_v(b_front[2], b_front[2] + 16.0, b_front[1] + 8, b_front[1], "16,0 mm")
+dim_v(b_front[2], b_front[3], b_front[0] - 6, b_front[0], "93,5 mm")
+dim_v(b_front[2], b_front[2] + 16.0, b_front[1] + 7, b_front[1], "16,0 mm")
 
 # Dimensions on Back View
-dim_h(162 - 19.0, 162 + 19.0, b_back[3] + 5, b_back[3], "38,0 mm (Steg)")
-dim_h(162 - 14.25, 162 + 14.25, b_back[2] - 10, b_back[2] + 15, "Ø 28,5 mm (Garmin)")
+dim_h(148 - 19.0, 148 + 19.0, b_back[3] + 4, b_back[3], "38,0 mm (Steg)")
+dim_h(148 - 14.25, 148 + 14.25, b_back[2] - 10, b_back[2] + 15, "Ø 28,5 mm (Garmin)")
 
 # Dimensions on Side View
-dim_h(b_side[0], b_side[1], b_side[2] - 10, b_side[2], "24,7 mm (Gesamt)")
-dim_h(b_side[0] + 3.0, b_side[0] + 16.2, b_side[3] + 5, b_side[3], "13,2 mm (Tiefe)")
+dim_h(b_side[0], b_side[1], b_side[2] - 10, b_side[2], "24,7 mm")
+dim_h(b_side[0] + 3.0, b_side[0] + 16.2, b_side[3] + 4, b_side[3], "13,2 mm")
 
 # Title Block (bottom right)
 ax.add_patch(patches.Rectangle((150, 10), 137, 36, fill=False, lw=0.9, ec='black'))
