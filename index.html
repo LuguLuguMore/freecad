@@ -7,7 +7,7 @@
   <style>
     :root {
       --bg: #0f172a;
-      --panel: rgba(15, 23, 42, 0.84);
+      --panel: rgba(15, 23, 42, 0.86);
       --border: rgba(148, 163, 184, 0.25);
       --text: #f1f5f9;
       --muted: #94a3b8;
@@ -22,59 +22,78 @@
     canvas {
       position: fixed; inset: 0; z-index: 1; display: block;
     }
-    #hud {
-      position: fixed; top: 10px; left: 10px; right: 10px;
-      z-index: 20; pointer-events: none;
-      display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-start;
+
+    /* Compact Top Bar */
+    #topbar {
+      position: fixed; top: 8px; left: 8px; right: 8px; z-index: 25;
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 6px 10px;
     }
-    .card {
-      pointer-events: auto;
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      max-width: 330px;
-      font-size: 12px;
-      line-height: 1.35;
+    .title-wrap { min-width: 0; }
+    .title-wrap h1 {
+      font-size: 13px; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .card h1 { font-size: 14px; font-weight: 700; margin-bottom: 3px; color: #fff; }
-    .meta { color: var(--muted); font-size: 11px; margin-bottom: 6px; }
-    .stats {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
-      margin-top: 4px; text-align: center;
+    .title-wrap .sub {
+      font-size: 11px; color: var(--accent); font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .stat { background: rgba(30, 41, 59, 0.75); border-radius: 8px; padding: 5px 4px; }
-    .stat strong { display: block; font-size: 13px; color: var(--accent); }
-    .stat span { font-size: 10px; color: var(--muted); }
-    .controls { display: flex; flex-direction: column; gap: 7px; }
-    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
-    button {
+    .top-btns { display: flex; gap: 5px; flex-shrink: 0; }
+
+    button, .dl-link {
       cursor: pointer; border: 1px solid var(--border);
-      background: rgba(30, 41, 59, 0.85); color: var(--text);
-      padding: 7px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      background: rgba(30, 41, 59, 0.9); color: var(--text);
+      padding: 6px 9px; border-radius: 7px; font-size: 11px; font-weight: 600;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
     }
     button.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
     button.ar-btn {
       background: linear-gradient(135deg, #0ea5e9, #6366f1);
-      border-color: transparent; color: #fff; width: 100%;
+      border-color: transparent; color: #fff; padding: 9px 14px; font-size: 12px;
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
     }
+
+    /* Collapsible Drawers */
+    .drawer {
+      position: fixed; top: 58px; right: 8px; z-index: 24;
+      width: min(290px, calc(100vw - 16px));
+      background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; display: none; flex-direction: column; gap: 8px;
+      font-size: 12px; max-height: calc(100vh - 130px); overflow-y: auto;
+    }
+    .drawer.open { display: flex; }
+    .btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .meta-note { font-size: 11px; color: var(--muted); line-height: 1.35; }
     label { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
     input[type="range"] { width: 100%; accent-color: var(--accent); }
-    #legend {
-      position: fixed; bottom: 14px; left: 10px; z-index: 20;
-      background: var(--panel); backdrop-filter: blur(10px);
-      border: 1px solid var(--border); border-radius: 10px;
-      padding: 8px 12px; width: 220px; font-size: 11px;
+    .dl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .dl-link { justify-content: center; padding: 7px 6px; }
+    .dl-link:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Compact Bottom Bar */
+    #bottombar {
+      position: fixed; bottom: 10px; left: 8px; right: 8px; z-index: 25;
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;
+      pointer-events: none;
     }
-    .colorbar { height: 10px; border-radius: 5px; margin: 5px 0 3px; }
+    #legend {
+      pointer-events: auto;
+      background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border); border-radius: 9px;
+      padding: 6px 9px; width: 165px; font-size: 10px;
+    }
+    .colorbar { height: 8px; border-radius: 4px; margin: 4px 0 2px; }
     .colorbar-labels { display: flex; justify-content: space-between; color: var(--muted); }
+    #ar-wrap {
+      pointer-events: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+    }
     #ar-status {
-      position: fixed; bottom: 14px; right: 10px; z-index: 20;
       background: var(--panel); border: 1px solid var(--border);
-      border-radius: 10px; padding: 8px 12px; font-size: 11px;
-      max-width: 240px; display: none;
+      border-radius: 8px; padding: 5px 9px; font-size: 10px;
+      max-width: 210px; text-align: right; display: none;
     }
     #ar-status.found { border-color: #22c55e; color: #86efac; }
   </style>
@@ -84,42 +103,60 @@
   <script src="./GarminPixel6Halterung/fem_ar_data.js"></script>
 </head>
 <body>
-  <div id="hud">
-    <div class="card">
-      <h1>Garmin Pixel 6 Halterung – FEM</h1>
-      <div class="meta" id="meta-desc">Lade FEM-Daten...</div>
-      <div class="stats">
-        <div class="stat"><strong id="stat-vm">–</strong><span>Max Spannung</span></div>
-        <div class="stat"><strong id="stat-disp">–</strong><span>Max Biegung</span></div>
-        <div class="stat"><strong id="stat-sf">–</strong><span>Sicherheit (35 MPa)</span></div>
-      </div>
+  <div id="topbar">
+    <div class="title-wrap">
+      <h1>Pixel 6 Garmin-Mount – FEM</h1>
+      <div class="sub" id="stat-line">Lade FEM-Daten...</div>
     </div>
-
-    <div class="card controls">
-      <div class="btn-row">
-        <button id="btn-vm" class="active">von Mises (MPa)</button>
-        <button id="btn-disp">Verformung (mm)</button>
-        <button id="btn-wire">Netz</button>
-      </div>
-      <div>
-        <label><span>Verformungs-Skala</span><span id="scale-val">5.0×</span></label>
-        <input id="scale-slider" type="range" min="0" max="15" step="0.5" value="5" />
-      </div>
-      <button id="btn-ar" class="ar-btn">AR über Zeichnung starten (HIRO-Marker)</button>
+    <div class="top-btns">
+      <button id="btn-toggle-ctrl">⚙ Ansicht</button>
+      <button id="btn-toggle-dl">↓ Daten</button>
     </div>
   </div>
 
-  <div id="legend">
-    <div id="legend-title">von Mises Spannung [MPa]</div>
-    <div id="colorbar" class="colorbar"></div>
-    <div class="colorbar-labels">
-      <span id="leg-min">0</span>
-      <span id="leg-mid">–</span>
-      <span id="leg-max">–</span>
+  <div id="drawer-ctrl" class="drawer">
+    <div class="meta-note" id="meta-desc"></div>
+    <div class="btn-row">
+      <button id="btn-vm" class="active">von Mises (MPa)</button>
+      <button id="btn-disp">Verformung (mm)</button>
+      <button id="btn-wire">Netz</button>
+    </div>
+    <div>
+      <label><span>Verformungs-Skala</span><span id="scale-val">5.0×</span></label>
+      <input id="scale-slider" type="range" min="0" max="15" step="0.5" value="5" />
     </div>
   </div>
 
-  <div id="ar-status"></div>
+  <div id="drawer-dl" class="drawer">
+    <div class="meta-note">Projekt-Dateien herunterladen:</div>
+    <div class="dl-grid">
+      <a class="dl-link" href="./GarminPixel6Halterung/Zeichnung_Garmin_Pixel6_Optimiert.pdf" download>Zeichnung (PDF)</a>
+      <a class="dl-link" href="./GarminPixel6Halterung/Garmin_Pixel6_Halterung_Optimiert.stl" download>3D-Druck (STL)</a>
+      <a class="dl-link" href="./GarminPixel6Halterung/Garmin_Pixel6_Halterung_Optimiert.step" download>CAD (STEP)</a>
+      <a class="dl-link" href="./GarminPixel6Halterung/Garmin_Pixel6_Halterung_Optimiert.FCStd" download>FreeCAD (FCStd)</a>
+      <a class="dl-link" href="./GarminPixel6Halterung/Garmin_Pixel6_Halterung_FEM.FCStd" download>FEM-Projekt</a>
+      <a class="dl-link" href="./GarminPixel6Halterung/Garmin_Pixel6_Baugruppe.step" download>Baugruppe (STEP)</a>
+      <a class="dl-link" href="./GarminPixel6Halterung/Garmin_OutFront_Basis.stl" download>Basis-Mount (STL)</a>
+      <a class="dl-link" href="./GarminPixel6Halterung/hiro_marker.png" download>HIRO-Marker</a>
+    </div>
+  </div>
+
+  <div id="bottombar">
+    <div id="legend">
+      <div id="legend-title">von Mises [MPa]</div>
+      <div id="colorbar" class="colorbar"></div>
+      <div class="colorbar-labels">
+        <span id="leg-min">0</span>
+        <span id="leg-mid">–</span>
+        <span id="leg-max">–</span>
+      </div>
+    </div>
+
+    <div id="ar-wrap">
+      <div id="ar-status"></div>
+      <button id="btn-ar" class="ar-btn">AR starten</button>
+    </div>
+  </div>
 
   <script>
     function turboColor(t) {
@@ -139,7 +176,7 @@
     }
 
     const scene = new THREE.Scene();
-    let camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.005, 50);
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.005, 50);
     camera.position.set(0.14, 0.12, 0.18);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -172,7 +209,6 @@
     let mode = 'vm';
     let dispScale = 5.0;
 
-    // AR.js state
     let arActive = false;
     let arToolkitSource = null;
     let arToolkitContext = null;
@@ -196,7 +232,7 @@
 
       const cb = document.getElementById('colorbar');
       if (mode === 'vm') {
-        document.getElementById('legend-title').textContent = 'von Mises Spannung [MPa]';
+        document.getElementById('legend-title').textContent = 'von Mises [MPa]';
         cb.style.background = 'linear-gradient(90deg, #30123b, #28bbec, #a2fc3c, #fb8022, #7a0403)';
         document.getElementById('leg-min').textContent = '0';
         document.getElementById('leg-mid').textContent = (maxVal / 2).toFixed(1);
@@ -231,10 +267,9 @@
       }
 
       const m = femData.meta;
+      document.getElementById('stat-line').textContent =
+        `Max ${m.maxVonMisesMPa} MPa · ${m.maxDispMm} mm · SF ${m.safetyFactorPetg35}×`;
       document.getElementById('meta-desc').textContent = `${m.material} · ${m.loadCase}`;
-      document.getElementById('stat-vm').textContent = `${m.maxVonMisesMPa} MPa`;
-      document.getElementById('stat-disp').textContent = `${m.maxDispMm} mm`;
-      document.getElementById('stat-sf').textContent = `${m.safetyFactorPetg35}×`;
 
       geometry = new THREE.BufferGeometry();
       const posArr = new Float32Array(femData.positions.length);
@@ -267,6 +302,8 @@
       grid.visible = false;
       controls.enabled = false;
       document.body.style.background = 'transparent';
+      document.getElementById('drawer-ctrl').classList.remove('open');
+      document.getElementById('drawer-dl').classList.remove('open');
 
       arCamera = new THREE.Camera();
       scene.add(arCamera);
@@ -294,7 +331,6 @@
         patternUrl: './GarminPixel6Halterung/patt.hiro',
       });
 
-      // Scale mount nicely so it hovers clearly above the 32 mm HIRO marker (1 unit = marker width)
       scene.remove(mountGroup);
       markerRoot.add(mountGroup);
       mountGroup.scale.setScalar(18.0);
@@ -303,8 +339,8 @@
       const status = document.getElementById('ar-status');
       status.style.display = 'block';
       status.classList.remove('found');
-      status.textContent = 'Kamera auf den HIRO-Marker auf der Zeichnung richten...';
-      document.getElementById('btn-ar').textContent = 'AR beenden (zurück zu 3D)';
+      status.textContent = 'Auf HIRO-Marker richten...';
+      document.getElementById('btn-ar').textContent = 'AR beenden';
     }
 
     function stopAR() {
@@ -332,7 +368,7 @@
       document.body.style.background = 'var(--bg)';
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.getElementById('ar-status').style.display = 'none';
-      document.getElementById('btn-ar').textContent = 'AR über Zeichnung starten (HIRO-Marker)';
+      document.getElementById('btn-ar').textContent = 'AR starten';
     }
 
     function onARResize() {
@@ -343,6 +379,18 @@
         arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
       }
     }
+
+    // Drawer toggles
+    const dCtrl = document.getElementById('drawer-ctrl');
+    const dDl = document.getElementById('drawer-dl');
+    document.getElementById('btn-toggle-ctrl').onclick = () => {
+      dDl.classList.remove('open');
+      dCtrl.classList.toggle('open');
+    };
+    document.getElementById('btn-toggle-dl').onclick = () => {
+      dCtrl.classList.remove('open');
+      dDl.classList.toggle('open');
+    };
 
     document.getElementById('btn-vm').onclick = (e) => {
       mode = 'vm';
@@ -390,10 +438,10 @@
           const st = document.getElementById('ar-status');
           if (markerRoot.visible) {
             st.classList.add('found');
-            st.textContent = 'Marker erkannt – FEM schwebt über Zeichnung!';
+            st.textContent = 'Marker erkannt – FEM aktiv!';
           } else {
             st.classList.remove('found');
-            st.textContent = 'Kamera auf den HIRO-Marker auf der Zeichnung richten...';
+            st.textContent = 'Auf HIRO-Marker richten...';
           }
         }
         renderer.render(scene, arCamera);
