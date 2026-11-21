@@ -1,11 +1,9 @@
 """3D Linear-Static FEM Analysis (Gmsh + CalculiX) for the Optimized Pixel 6 Garmin Mount.
 
-Load Case:
+Load Case (Toddler Pull-Down Test):
   - Material: 3D-printed PETG (E = 2100 MPa, nu = 0.35, conservative yield = 35 MPa)
   - Fixed Support: Garmin quarter-turn bayonet (locked into handlebar mount)
-  - Load: 50 N total pull-out force in -Y (~20g shock on a 250 g Pixel 6 + case):
-      * 35 N on top hook inner retention lip
-      * 15 N on bottom front retention lips
+  - Load: 50 N (~5 kg) downward force (-Z) on the top hook / tab ("Lasche nach unten gezogen")
 
 Run with FreeCAD:
   "C:\\Program Files\\FreeCAD 1.0\\bin\\freecadcmd.exe" run_fem.py
@@ -72,51 +70,30 @@ def main():
     fixed.References = [(part_obj, f) for f in fixed_faces]
     analysis.addObject(fixed)
 
-    # 4. Force on top hook inner retention face (Y ~ -13.2, Z in [87.0, 90.0]) -> 35 N in -Y
+    # 4. Force on top hook / tab: 50 N downward (-Z) ("Kleinkind zieht Lasche nach unten")
     top_load_faces = select_faces_by_predicate(
         part_obj,
         lambda f: (
-            abs(f.CenterOfMass.y - (-13.2)) < 0.2
-            and 86.5 <= f.CenterOfMass.z <= 90.2
+            f.CenterOfMass.z >= 87.0
+            and f.CenterOfMass.y <= -4.0
         ),
     )
     print(f"Top hook load faces ({len(top_load_faces)}):", top_load_faces)
-    force_top = ObjectsFem.makeConstraintForce(doc, "Force_Top_Hook_35N")
+    force_top = ObjectsFem.makeConstraintForce(doc, "Force_Top_Hook_Down_50N")
     force_top.References = [(part_obj, f) for f in top_load_faces]
-    force_top.Force = "35.0 N"
-    force_top.Direction = (part_obj, ["Face1"])  # placeholder, override via Reversed / DirectionVector
-    # Use DirectionVector if available, or find a flat Y-normal face
-    y_norm_faces = select_faces_by_predicate(
+    force_top.Force = "50.0 N"
+    # Find a flat Z-normal face to set -Z direction
+    z_norm_faces = select_faces_by_predicate(
         part_obj,
-        lambda f: abs(abs(f.normalAt(0, 0).y) - 1.0) < 0.01 and f.Area > 5.0,
+        lambda f: abs(abs(f.normalAt(0, 0).z) - 1.0) < 0.01 and f.Area > 5.0,
     )
-    if y_norm_faces:
-        ref_face_name = y_norm_faces[0]
+    if z_norm_faces:
+        ref_face_name = z_norm_faces[0]
         ref_face = getattr(part_obj.Shape, ref_face_name)
-        ny = ref_face.normalAt(0, 0).y
+        nz = ref_face.normalAt(0, 0).z
         force_top.Direction = (part_obj, [ref_face_name])
-        force_top.Reversed = (ny > 0)  # want -Y
+        force_top.Reversed = (nz > 0)  # want -Z (downward)
     analysis.addObject(force_top)
-
-    # 5. Force on bottom front retention lips (Y ~ -13.2, Z in [0, 16]) -> 15 N in -Y
-    bot_load_faces = select_faces_by_predicate(
-        part_obj,
-        lambda f: (
-            abs(f.CenterOfMass.y - (-13.2)) < 0.2
-            and 0.0 <= f.CenterOfMass.z <= 16.0
-        ),
-    )
-    print(f"Bottom lip load faces ({len(bot_load_faces)}):", bot_load_faces)
-    force_bot = ObjectsFem.makeConstraintForce(doc, "Force_Bottom_Lips_15N")
-    force_bot.References = [(part_obj, f) for f in bot_load_faces]
-    force_bot.Force = "15.0 N"
-    if y_norm_faces:
-        ref_face_name = y_norm_faces[0]
-        ref_face = getattr(part_obj.Shape, ref_face_name)
-        ny = ref_face.normalAt(0, 0).y
-        force_bot.Direction = (part_obj, [ref_face_name])
-        force_bot.Reversed = (ny > 0)
-    analysis.addObject(force_bot)
 
     # 6. Gmsh 3D tetrahedral mesh (2nd order C3D10 for accurate bending)
     mesh_obj = ObjectsFem.makeMeshGmsh(doc, "FEMMeshGmsh")
@@ -187,7 +164,7 @@ def main():
     yield_petg = 35.0
     sf_petg = yield_petg / max_vm if max_vm > 0 else float("inf")
 
-    print("\n=== FEM RESULTS (PETG, 50 N Pull-Out / ~20g Shock) ===")
+    print("\n=== FEM RESULTS (PETG, 50 N Downward / Toddler Pull) ===")
     print(f"Max Displacement:      {max_disp:.3f} mm")
     print(f"Max von Mises Stress:  {max_vm:.2f} MPa")
     print(f"Max Stress Location:   ({max_node_pos.x:.1f}, {max_node_pos.y:.1f}, {max_node_pos.z:.1f}) mm")

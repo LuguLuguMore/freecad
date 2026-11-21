@@ -96,7 +96,7 @@ def main():
         "meta": {
             "part": "Garmin Pixel 6 Halterung (Statisch Optimiert)",
             "material": "PETG (E = 2100 MPa, nu = 0.35)",
-            "loadCase": "50 N (~20g Schlagloch-Stoß), Garmin-Bajonett fixiert",
+            "loadCase": "50 N Zug nach unten (-Z, Kleinkind-Lastfall), Garmin fixiert",
             "maxVonMisesMPa": round(max(von_mises), 2),
             "maxDispMm": round(max(disp_mags), 3),
             "safetyFactorPetg35": round(35.0 / max(von_mises), 2),

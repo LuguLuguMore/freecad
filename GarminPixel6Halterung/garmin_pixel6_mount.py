@@ -222,6 +222,19 @@ def build_mount():
 
     ribs = rib_left.fuse(rib_right).fuse(rib_horiz)
 
+    # Add a load-distributing arch/ring around the Garmin clearance zone (R=21..26.5 mm)
+    # so bending forces flow smoothly around the cutout without a sharp 90-deg notch
+    ring_outer = Part.makeCylinder(
+        GARMIN_CLEARANCE_DIA / 2.0 + 5.5,
+        rib_len_y,
+        FreeCAD.Vector(0, y_rib_start, GARMIN_CENTER_Z),
+        FreeCAD.Vector(0, 1, 0),
+    )
+    ring_clipped = ring_outer.common(
+        make_prism_xz(t_pts, y_rib_start, rib_len_y)
+    )
+    ribs = ribs.fuse(ring_clipped)
+
     # Subtract Garmin clearance cylinder so female mount can rotate freely
     clearance_cyl = Part.makeCylinder(
         GARMIN_CLEARANCE_DIA / 2.0,
