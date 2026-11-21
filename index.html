@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>FEM AR Viewer – Garmin Pixel 6 Halterung</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.82);
+      --border: rgba(148, 163, 184, 0.25);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    #cam-bg {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: 0; display: none;
+    }
+    canvas {
+      position: fixed; inset: 0; z-index: 1; display: block;
+    }
+    #hud {
+      position: fixed; top: 12px; left: 12px; right: 12px;
+      z-index: 10; pointer-events: none;
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: flex-start;
+    }
+    .card {
+      pointer-events: auto;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      max-width: 340px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .card h1 { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: #fff; }
+    .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      margin-top: 6px; text-align: center;
+    }
+    .stat {
+      background: rgba(30, 41, 59, 0.7); border-radius: 8px; padding: 6px 4px;
+    }
+    .stat strong { display: block; font-size: 14px; color: var(--accent); }
+    .stat span { font-size: 10px; color: var(--muted); }
+    .controls { display: flex; flex-direction: column; gap: 8px; }
+    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    button {
+      cursor: pointer; border: 1px solid var(--border);
+      background: rgba(30, 41, 59, 0.85); color: var(--text);
+      padding: 7px 11px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button.active {
+      background: var(--accent); color: #0f172a; border-color: var(--accent);
+    }
+    button.ar-btn {
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      border-color: transparent; color: #fff;
+    }
+    label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    #legend {
+      position: fixed; bottom: 16px; left: 12px; z-index: 10;
+      background: var(--panel); backdrop-filter: blur(10px);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 12px; width: 240px; font-size: 11px;
+    }
+    .colorbar {
+      height: 12px; border-radius: 6px; margin: 5px 0 3px;
+    }
+    .colorbar-labels { display: flex; justify-content: space-between; color: var(--muted); }
+    #ar-hint {
+      position: fixed; bottom: 16px; right: 12px; z-index: 10;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 12px; font-size: 11px; color: var(--muted);
+      max-width: 240px; display: none;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <video id="cam-bg" autoplay playsinline muted></video>
+
+  <div id="hud">
+    <div class="card">
+      <h1>Garmin Pixel 6 Halterung – FEM</h1>
+      <div class="meta" id="meta-desc">Lade FEM-Daten...</div>
+      <div class="stats">
+        <div class="stat"><strong id="stat-vm">–</strong><span>Max Spannung</span></div>
+        <div class="stat"><strong id="stat-disp">–</strong><span>Max Biegung</span></div>
+        <div class="stat"><strong id="stat-sf">–</strong><span>Sicherheit (35 MPa)</span></div>
+      </div>
+    </div>
+
+    <div class="card controls">
+      <div class="btn-row">
+        <button id="btn-vm" class="active">von Mises (MPa)</button>
+        <button id="btn-disp">Verformung (mm)</button>
+        <button id="btn-wire">Netz</button>
+      </div>
+      <div>
+        <label><span>Verformungs-Skala</span><span id="scale-val">3.0×</span></label>
+        <input id="scale-slider" type="range" min="0" max="15" step="0.5" value="3" />
+      </div>
+      <div class="btn-row" id="ar-actions">
+        <button id="btn-cam-ar" class="ar-btn">Kamera-AR starten</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="legend">
+    <div id="legend-title">von Mises Spannung [MPa]</div>
+    <div id="colorbar" class="colorbar"></div>
+    <div class="colorbar-labels">
+      <span id="leg-min">0</span>
+      <span id="leg-mid">18.4</span>
+      <span id="leg-max">36.7</span>
+    </div>
+  </div>
+
+  <div id="ar-hint"></div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { ARButton } from 'three/addons/webxr/ARButton.js';
+
+    // Turbo colormap approximation (0..1 -> [r,g,b])
+    function turboColor(t) {
+      t = Math.max(0, Math.min(1, t));
+      const r = Math.max(0, Math.min(1, 0.1357 + t * (4.615 + t * (-42.66 + t * (132.13 + t * (-152.94 + t * 59.28))))));
+      const g = Math.max(0, Math.min(1, 0.0914 + t * (2.264 + t * (14.02 + t * (-67.45 + t * (84.66 - t * 33.41))))));
+      const b = Math.max(0, Math.min(1, 0.1067 + t * (12.64 + t * (-60.58 + t * (110.36 + t * (-89.90 + t * 27.34))))));
+      return [r, g, b];
+    }
+
+    // Viridis colormap approximation
+    function viridisColor(t) {
+      t = Math.max(0, Math.min(1, t));
+      const r = Math.max(0, Math.min(1, 0.267 + t * (-0.329 + t * (2.374 + t * (-1.345)))));
+      const g = Math.max(0, Math.min(1, 0.004 + t * (1.425 + t * (-0.721 + t * 0.197))));
+      const b = Math.max(0, Math.min(1, 0.329 + t * (1.454 + t * (-2.634 + t * 1.005))));
+      return [r, g, b];
+    }
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.005, 20);
+    camera.position.set(0.14, 0.12, 0.18);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.045, 0);
+    controls.update();
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight.position.set(0.5, 1.0, 0.7);
+    scene.add(dirLight);
+    const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.4);
+    dirLight2.position.set(-0.5, -0.3, -0.6);
+    scene.add(dirLight2);
+
+    const grid = new THREE.GridHelper(0.3, 15, 0x334155, 0x1e293b);
+    scene.add(grid);
+
+    const mountGroup = new THREE.Group();
+    scene.add(mountGroup);
+
+    let femData = null;
+    let geometry = null;
+    let wireMesh = null;
+    let mode = 'vm'; // 'vm' or 'disp'
+    let dispScale = 3.0;
+
+    function updateColors() {
+      if (!femData || !geometry) return;
+      const colors = geometry.attributes.color.array;
+      const vals = mode === 'vm' ? femData.vonMises : femData.dispMag;
+      const maxVal = mode === 'vm' ? femData.meta.maxVonMisesMPa : femData.meta.maxDispMm;
+      const fn = mode === 'vm' ? turboColor : viridisColor;
+
+      for (let i = 0; i < vals.length; i++) {
+        const [r, g, b] = fn(vals[i] / (maxVal || 1));
+        colors[i * 3] = r;
+        colors[i * 3 + 1] = g;
+        colors[i * 3 + 2] = b;
+      }
+      geometry.attributes.color.needsUpdate = true;
+
+      const cb = document.getElementById('colorbar');
+      if (mode === 'vm') {
+        document.getElementById('legend-title').textContent = 'von Mises Spannung [MPa]';
+        cb.style.background = 'linear-gradient(90deg, #30123b, #28bbec, #a2fc3c, #fb8022, #7a0403)';
+        document.getElementById('leg-min').textContent = '0';
+        document.getElementById('leg-mid').textContent = (maxVal / 2).toFixed(1);
+        document.getElementById('leg-max').textContent = maxVal.toFixed(1);
+      } else {
+        document.getElementById('legend-title').textContent = 'Verformung [mm]';
+        cb.style.background = 'linear-gradient(90deg, #440154, #31688e, #35b779, #fde725)';
+        document.getElementById('leg-min').textContent = '0';
+        document.getElementById('leg-mid').textContent = (maxVal / 2).toFixed(2);
+        document.getElementById('leg-max').textContent = maxVal.toFixed(2);
+      }
+    }
+
+    function updateDisplacement() {
+      if (!femData || !geometry) return;
+      const pos = geometry.attributes.position.array;
+      const base = femData.positions;
+      const disp = femData.displacements;
+      // Convert mm -> meters (0.001)
+      for (let i = 0; i < pos.length; i++) {
+        pos[i] = (base[i] + dispScale * disp[i]) * 0.001;
+      }
+      geometry.attributes.position.needsUpdate = true;
+      geometry.computeVertexNormals();
+    }
+
+    async function init() {
+      const res = await fetch('./GarminPixel6Halterung/fem_ar_data.json');
+      femData = await res.json();
+
+      const m = femData.meta;
+      document.getElementById('meta-desc').textContent = `${m.material} · ${m.loadCase}`;
+      document.getElementById('stat-vm').textContent = `${m.maxVonMisesMPa} MPa`;
+      document.getElementById('stat-disp').textContent = `${m.maxDispMm} mm`;
+      document.getElementById('stat-sf').textContent = `${m.safetyFactorPetg35}×`;
+
+      geometry = new THREE.BufferGeometry();
+      const posArr = new Float32Array(femData.positions.length);
+      const colArr = new Float32Array(femData.positions.length);
+      geometry.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
+      geometry.setIndex(femData.indices);
+
+      updateDisplacement();
+      updateColors();
+
+      const mat = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.45,
+        metalness: 0.05,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geometry, mat);
+      mountGroup.add(mesh);
+
+      wireMesh = new THREE.Mesh(
+        geometry,
+        new THREE.MeshBasicMaterial({ color: 0x0f172a, wireframe: true, transparent: true, opacity: 0.2 })
+      );
+      wireMesh.visible = false;
+      mountGroup.add(wireMesh);
+
+      // WebXR ARButton if supported
+      if (navigator.xr && await navigator.xr.isSessionSupported('immersive-ar')) {
+        const arBtn = ARButton.createButton(renderer, {
+          optionalFeatures: ['dom-overlay', 'hit-test'],
+          domOverlay: { root: document.body },
+        });
+        arBtn.style.position = 'static';
+        arBtn.className = 'ar-btn';
+        arBtn.textContent = 'WebXR AR (1:1)';
+        document.getElementById('ar-actions').prepend(arBtn);
+
+        renderer.xr.addEventListener('sessionstart', () => {
+          grid.visible = false;
+          mountGroup.position.set(0, -0.05, -0.35);
+          mountGroup.scale.setScalar(1.0);
+          document.getElementById('ar-hint').style.display = 'block';
+          document.getElementById('ar-hint').textContent = 'WebXR aktiv: Halterung im Maßstab 1:1 (35 cm vor dir).';
+        });
+        renderer.xr.addEventListener('sessionend', () => {
+          grid.visible = true;
+          mountGroup.position.set(0, 0, 0);
+          document.getElementById('ar-hint').style.display = 'none';
+        });
+      }
+    }
+
+    // UI Listeners
+    document.getElementById('btn-vm').onclick = (e) => {
+      mode = 'vm';
+      e.target.classList.add('active');
+      document.getElementById('btn-disp').classList.remove('active');
+      updateColors();
+    };
+    document.getElementById('btn-disp').onclick = (e) => {
+      mode = 'disp';
+      e.target.classList.add('active');
+      document.getElementById('btn-vm').classList.remove('active');
+      updateColors();
+    };
+    document.getElementById('btn-wire').onclick = (e) => {
+      if (!wireMesh) return;
+      wireMesh.visible = !wireMesh.visible;
+      e.target.classList.toggle('active', wireMesh.visible);
+    };
+    document.getElementById('scale-slider').oninput = (e) => {
+      dispScale = parseFloat(e.target.value);
+      document.getElementById('scale-val').textContent = `${dispScale.toFixed(1)}×`;
+      updateDisplacement();
+    };
+
+    // Camera Passthrough AR Fallback (works on iOS Safari & Android)
+    let camStream = null;
+    document.getElementById('btn-cam-ar').onclick = async (e) => {
+      const video = document.getElementById('cam-bg');
+      const hint = document.getElementById('ar-hint');
+      if (camStream) {
+        camStream.getTracks().forEach(t => t.stop());
+        camStream = null;
+        video.style.display = 'none';
+        grid.visible = true;
+        document.body.style.background = 'var(--bg)';
+        e.target.textContent = 'Kamera-AR starten';
+        hint.style.display = 'none';
+        return;
+      }
+      try {
+        camStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }, audio: false
+        });
+        video.srcObject = camStream;
+        video.style.display = 'block';
+        grid.visible = false;
+        document.body.style.background = 'transparent';
+        e.target.textContent = 'Kamera-AR beenden';
+        hint.style.display = 'block';
+        hint.textContent = 'Kamera-AR aktiv: Drehen & Zoomen mit den Fingern über der Zeichnung.';
+      } catch (err) {
+        alert('Kamera-Zugriff nicht möglich (HTTPS erforderlich): ' + err.message);
+      }
+    };
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    renderer.setAnimationLoop(() => {
+      if (!renderer.xr.isPresenting) {
+        controls.update();
+      }
+      renderer.render(scene, camera);
+    });
+
+    init();
+  </script>
+</body>
+</html>
