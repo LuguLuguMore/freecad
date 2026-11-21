@@ -198,41 +198,38 @@ def build_mount():
     y_rib_start = BACKPLATE_THICK - 0.5  # overlap slightly for clean boolean fuse
     rib_len_y = RIB_DEPTH + 0.5
 
-    # Two vertical spine ribs from Z=2.0 up to Z=INNER_HEIGHT + TOP_HOOK_THICK
+    # Two vertical spine ribs starting above the Garmin Out-Front arm sweep zone (Z >= 28.0)
+    rib_z_start = 28.0
     rib_left = Part.makeBox(
         RIB_WIDTH,
         rib_len_y,
-        INNER_HEIGHT + TOP_HOOK_THICK - 2.0,
-        FreeCAD.Vector(-SPINE_RIB_OFFSET_X - RIB_WIDTH / 2.0, y_rib_start, 2.0),
+        INNER_HEIGHT + TOP_HOOK_THICK - rib_z_start,
+        FreeCAD.Vector(-SPINE_RIB_OFFSET_X - RIB_WIDTH / 2.0, y_rib_start, rib_z_start),
     )
     rib_right = Part.makeBox(
         RIB_WIDTH,
         rib_len_y,
-        INNER_HEIGHT + TOP_HOOK_THICK - 2.0,
-        FreeCAD.Vector(SPINE_RIB_OFFSET_X - RIB_WIDTH / 2.0, y_rib_start, 2.0),
+        INNER_HEIGHT + TOP_HOOK_THICK - rib_z_start,
+        FreeCAD.Vector(SPINE_RIB_OFFSET_X - RIB_WIDTH / 2.0, y_rib_start, rib_z_start),
     )
 
-    # Horizontal stiffening rib along bottom bar (Z = 6.0 .. 10.0)
-    rib_horiz = Part.makeBox(
-        INNER_WIDTH - 4.0,
-        rib_len_y,
-        RIB_WIDTH,
-        FreeCAD.Vector(-(INNER_WIDTH - 4.0) / 2.0, y_rib_start, 6.0),
-    )
+    ribs = rib_left.fuse(rib_right)
 
-    ribs = rib_left.fuse(rib_right).fuse(rib_horiz)
-
-    # Add a load-distributing arch/ring around the Garmin clearance zone (R=21..26.5 mm)
-    # so bending forces flow smoothly around the cutout without a sharp 90-deg notch
+    # Upper load-distributing arch above the Garmin clearance zone (Z >= 28.0)
+    # Leaves Z < 28 mm flush at Y=BACKPLATE_THICK so the Out-Front arm can twist +/-90 deg freely
     ring_outer = Part.makeCylinder(
         GARMIN_CLEARANCE_DIA / 2.0 + 5.5,
         rib_len_y,
         FreeCAD.Vector(0, y_rib_start, GARMIN_CENTER_Z),
         FreeCAD.Vector(0, 1, 0),
     )
+    upper_half = Part.makeBox(
+        100.0, rib_len_y + 2.0, 100.0,
+        FreeCAD.Vector(-50.0, y_rib_start - 1.0, rib_z_start),
+    )
     ring_clipped = ring_outer.common(
         make_prism_xz(t_pts, y_rib_start, rib_len_y)
-    )
+    ).common(upper_half)
     ribs = ribs.fuse(ring_clipped)
 
     # Subtract Garmin clearance cylinder so female mount can rotate freely

@@ -124,10 +124,13 @@ def main():
 
     doc.recompute()
 
-    # Collision / Interference Check
-    overlap = mount_shape.common(basis_shape)
-    print(f"Basis valid: {basis_shape.isValid()}, Solids: {len(basis_shape.Solids)}")
-    print(f"Collision volume (Mount vs. Basis): {overlap.Volume:.4f} mm^3")
+    # Collision / Interference Check across full 0..90 deg twist
+    for deg in (0, 30, 60, 90, -30, -60, -90):
+        b_rot = basis_shape.copy()
+        if deg != 0:
+            b_rot.rotate(FreeCAD.Vector(0, 0, GARMIN_CENTER_Z), FreeCAD.Vector(0, 1, 0), deg)
+        overlap = mount_shape.common(b_rot)
+        print(f"Collision at {deg:+4d} deg twist: {overlap.Volume:.4f} mm^3")
 
     doc.saveAs(FCSTD_ASM)
     Part.export([obj_mount, obj_basis], STEP_ASM)
