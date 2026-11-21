@@ -139,6 +139,7 @@
 
   <div id="ar-hint"></div>
 
+  <script src="./GarminPixel6Halterung/fem_ar_data.js"></script>
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -243,8 +244,12 @@
     }
 
     async function init() {
-      const res = await fetch('./GarminPixel6Halterung/fem_ar_data.json');
-      femData = await res.json();
+      if (window.FEM_AR_DATA) {
+        femData = window.FEM_AR_DATA;
+      } else {
+        const res = await fetch('./GarminPixel6Halterung/fem_ar_data.json');
+        femData = await res.json();
+      }
 
       const m = femData.meta;
       document.getElementById('meta-desc').textContent = `${m.material} · ${m.loadCase}`;
